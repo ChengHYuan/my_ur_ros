@@ -1,0 +1,8 @@
+prefix=/home/ylur/users_file/CHY/ur_ws/install
+
+Name: ur10e_comunicate
+Description: Description of ur10e_comunicate
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

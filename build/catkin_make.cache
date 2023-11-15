@@ -1,0 +1,2 @@
+ur10e_comunicate
+-DCATKIN_DEVEL_PREFIX=/home/ylur/users_file/CHY/ur_ws/devel -DCMAKE_INSTALL_PREFIX=/home/ylur/users_file/CHY/ur_ws/install -G Unix Makefiles
