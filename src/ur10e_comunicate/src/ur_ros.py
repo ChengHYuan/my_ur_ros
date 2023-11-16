@@ -9,16 +9,21 @@ from scipy.spatial.transform import Rotation as R
 import rtde_receive
 import rtde_control
 
+import math
+import copy
+
 
 class URros(object):
     def __init__(self):
-        INIT_MODE = -1
-        JP_MODE = 1
-        JV_MODE = 2
-        CP_MODE = 3
-        CV_MODE = 4
+        self.INIT_MODE = -1
+        self.JP_MODE = 1
+        self.JV_MODE = 2
+        self.CP_MODE = 3
+        self.CV_MODE = 4
 
         self.mode = -1
+
+        self.is_pubed = False
 
         self.rate_init = 500
 
@@ -58,19 +63,19 @@ class URros(object):
         pass
 
     def jp_callback(self, msg):
-        self.mode = URros.JP_MODE
+        self.mode = self.JP_MODE
         self.jp_command = msg
 
     def jv_callback(self, msg):
-        self.mode = URros.JV_MODE
+        self.mode = self.JV_MODE
         self.jv_command = msg
 
     def cp_callback(self, msg):
-        self.mode = URros.CP_MODE
+        self.mode = self.CP_MODE
         self.cp_command = msg
 
     def cv_callback(self, msg):
-        self.mode = URros.CV_MODE
+        self.mode = self.CV_MODE
         self.cv_command = msg
 
     def pub_of_state(self):
@@ -119,13 +124,22 @@ class URros(object):
         self.cpPub.publish(self.cp_state)
         self.cvPub.publish(self.cv_state)
         self.tcpforcePub.publish(self.tcpForce_state)
+        self.is_pubed = True
 
         return 0
 
     def robot_move_jp(self):
+        velocity = 0.5
+        acceleration = 0.5
+        hz=125
+        dt=1.0/hz
+        lookahead_time=5*dt
+        gain = 300
 
         jp = self.jp_command.position
-        self.rtde_c.moveJ(jp, 1.05, 1.4, True)
+        # print(jp)
+        # print("--------------------------")
+        self.rtde_c.servoJ(jp, velocity, acceleration, dt,lookahead_time, gain)
         pass
 
     def robot_move_jv(self):
@@ -151,17 +165,47 @@ class URros(object):
     def __del__(self):
         self.rtde_c.stopScript()
 
+    def jp_test(self):
+        velocity = 0.5
+        acceleration = 0.5
+        gain = 300
+        hz = 125
+        rate = rospy.Rate(hz)
+        # 生成轨迹 当前关节角开始
+        jp_begin = [self.j_state.position[0], self.j_state.position[1], self.j_state.position[2],
+                    self.j_state.position[3], self.j_state.position[4], self.j_state.position[5]]
+        jp_end = [self.j_state.position[0], self.j_state.position[1], self.j_state.position[2],
+                  self.j_state.position[3], self.j_state.position[4], self.j_state.position[5]]
+
+        angle_range = 10.0 * math.pi / 180
+        step_num = 2000
+        for i in range(step_num):
+            jp_end[3] = jp_begin[3] + (angle_range / 2000) * i
+            jp_end[4] = jp_begin[4] + (angle_range / 2000) * i
+            jp_end[5] = jp_begin[5] + (angle_range / 2000) * i
+
+            print(jp_end)
+
+            self.rtde_c.servoJ(jp_end, velocity, acceleration, 1.0 / 125, 5.0 / 125, gain)
+            rate.sleep()
+        return jp_end
+
 
 def main():
     rospy.init_node("test")
     ur_c = URros()
     rate = rospy.Rate(125)
+
+    ur_c.pub_of_state()
+
+    # ur_c.jp_test()
     while not rospy.is_shutdown():
-        if ur_c.mode==ur_c.JP_MODE:
+        if ur_c.mode == ur_c.JP_MODE:
             ur_c.robot_move_jp()
         ur_c.pub_of_state()
         # print(ur_c.j_state)
         rate.sleep()
+    ur_c.rtde_c.stopScript()
     return 0
 
 
