@@ -12,6 +12,13 @@ import rtde_control
 
 class URros(object):
     def __init__(self):
+        INIT_MODE = -1
+        JP_MODE = 1
+        JV_MODE = 2
+        CP_MODE = 3
+        CV_MODE = 4
+
+        self.mode = -1
 
         self.rate_init = 500
 
@@ -51,15 +58,19 @@ class URros(object):
         pass
 
     def jp_callback(self, msg):
+        self.mode = URros.JP_MODE
         self.jp_command = msg
 
     def jv_callback(self, msg):
+        self.mode = URros.JV_MODE
         self.jv_command = msg
 
     def cp_callback(self, msg):
+        self.mode = URros.CP_MODE
         self.cp_command = msg
 
     def cv_callback(self, msg):
+        self.mode = URros.CV_MODE
         self.cv_command = msg
 
     def pub_of_state(self):
@@ -112,6 +123,7 @@ class URros(object):
         return 0
 
     def robot_move_jp(self):
+
         jp = self.jp_command.position
         self.rtde_c.moveJ(jp, 1.05, 1.4, True)
         pass
@@ -145,7 +157,8 @@ def main():
     ur_c = URros()
     rate = rospy.Rate(125)
     while not rospy.is_shutdown():
-        # ur_c.robot_move_jp()
+        if ur_c.mode==ur_c.JP_MODE:
+            ur_c.robot_move_jp()
         ur_c.pub_of_state()
         # print(ur_c.j_state)
         rate.sleep()
